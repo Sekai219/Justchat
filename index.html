@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        #chat-container {
+            width: 95%;
+            max-width: 800px;
+            height: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat div {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            max-width: 75%;
+            word-wrap: break-word;
+            cursor: pointer;
+            white-space: pre-wrap; /* 保持文本的空格和换行符 */
+        }
+
+        #chat .sent {
+            background: #f1f1f1;
+            color: black;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        #chat .received {
+            background: #f1f1f1;
+            color: black;
+            align-self: flex-start;
+        }
+
+        #chat img {
+            max-width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #message-container {
+            display: flex;
+            padding: 10px;
+            background: #f7f7f7;
+            border-top: 1px solid #ccc;
+        }
+
+        #message {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #sendBtn, #imageUploadBtn {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        #imageUpload {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat"></div>
+        <div id="message-container">
+            <textarea id="message" rows="2" placeholder="..."></textarea>
+            <button id="imageUploadBtn">图片</button>
+            <button id="sendBtn">发送</button>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('sendBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const imageUploadBtn = document.getElementById('imageUploadBtn');
+
+        function appendMessage(msg, sender) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            div.classList.add(sender === socket.id ? 'sent' : 'received');
+            div.addEventListener('click', function() {
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert('消息已复制到剪贴板');
+                }).catch(err => {
+                    console.error('复制失败', err);
+                });
+            });
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function appendImage(img, sender) {
+            const imgElement = document.createElement('img');
+            imgElement.src = img;
+            imgElement.classList.add(sender === socket.id ? 'sent' : 'received');
+            chat.appendChild(imgElement);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        socket.on('message', function(data){
+            appendMessage(data.msg, data.sender);
+        });
+
+        socket.on('image', function(data){
+            appendImage(data.img, data.sender);
+        });
+
+        sendBtn.addEventListener('click', function(){
+            const message = messageInput.value;
+            if (message.trim() !== "") {
+                socket.emit('message', { msg: message, sender: socket.id });
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        imageUploadBtn.addEventListener('click', function() {
+            imageUpload.click();
+        });
+
+        imageUpload.addEventListener('change', function(){
+            const file = imageUpload.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('image', { img: e.target.result, sender: socket.id });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
