@@ -1,5 +1,6 @@
 # just-web-chat
 
+![](./mess.png)
 ### 1. **连接到你的VPS**
    你需要使用SSH连接到你的VPS。可以使用如下命令（将`your_username`替换为你的用户名，`your_server_ip`替换为你的服务器IP地址）：
 
