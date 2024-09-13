@@ -1,1 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="manifest" href="/manifest.json"> <!-- 添加 PWA Manifest -->
+    <meta id="theme-color-meta" name="theme-color" content="#f4f4f4"> <!-- 默认主题颜色为浅色 -->
 
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f4f4;
+            position: relative;
+        }
+
+        #chat-container {
+            width: 95%;
+            max-width: 800px;
+            height: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: white;
+            display: flex;
+            flex-direction: column;
+            max-width: 90vw;
+            position: relative;
+        }
+
+        #chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            max-width: 90vw;
+        }
+
+        #chat div {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            max-width: 75%;
+            word-wrap: break-word;
+            cursor: pointer;
+            white-space: pre-wrap;
+        }
+
+        #chat .sent {
+            background: #f1f1f1;
+            color: black;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        #chat .received {
+            background: #f1f1f1;
+            color: black;
+            align-self: flex-start;
+        }
+
+        #message-container {
+            display: flex;
+            padding: 10px;
+            background: #f7f7f7;
+            border-top: 1px solid #ccc;
+        }
+
+        #message {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #sendBtn, #pasteBtn {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        #refreshBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f4f4f4;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            color: black;
+            display: none; /* 初始不显示 */
+        }
+
+        @media screen and (max-width: 600px) {
+            #chat-container {
+                width: 100vw;
+                max-width: 100vw;
+            }
+
+            #chat div {
+                max-width: 85%;
+            }
+
+            #chat-container, #chat, #message-container {
+                user-select: none;
+                -webkit-touch-callout: none;
+            }
+        }
+
+        /* 深色模式样式 */
+        body.dark-mode {
+            background-color: #131313;
+        }
+
+        #chat-container.dark-mode {
+            background-color: #131313;
+            color: white;
+        }
+
+        #message-container.dark-mode {
+            background-color: #1a1a1a;
+        }
+
+        #chat .sent.dark-mode, #chat .received.dark-mode {
+            background-color: #2a2a2a;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <button id="refreshBtn">🔄</button> <!-- 圆形按钮 -->
+        <div id="chat"></div>
+        <div id="message-container">
+            <textarea id="message" rows="2" placeholder="..."></textarea>
+            <button id="pasteBtn">粘贴</button>
+            <button id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('sendBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const chatContainer = document.getElementById('chat-container');
+        const messageContainer = document.getElementById('message-container');
+
+        let copyCount = 0;
+
+        function appendMessage(msg, sender) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            div.classList.add(sender === socket.id ? 'sent' : 'received');
+            div.addEventListener('click', function() {
+                navigator.clipboard.writeText(msg).then(() => {
+                    copyCount++;
+                    refreshBtn.textContent = copyCount; // 更新按钮中的数字
+                    refreshBtn.style.display = 'flex'; // 显示按钮
+                }).catch(err => {
+                    console.error('复制失败', err);
+                });
+            });
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+
+            // 每次添加新对话时，重置计数器为0并隐藏按钮
+            copyCount = 0;
+            refreshBtn.style.display = 'none';
+        }
+
+        socket.on('message', function(data){
+            appendMessage(data.msg, data.sender);
+        });
+
+        sendBtn.addEventListener('click', function(){
+            const message = messageInput.value;
+            if (message.trim() !== "") {
+                socket.emit('message', { msg: message, sender: socket.id });
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        pasteBtn.addEventListener('click', async function() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text.trim() !== "") {
+                    socket.emit('message', { msg: text, sender: socket.id });
+                }
+            } catch (err) {
+                console.error('无法读取剪贴板内容', err);
+            }
+        });
+
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch((error) => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+
+        // 切换浅色/深色模式时动态更新主题颜色
+        const themeColorMeta = document.getElementById('theme-color-meta');
+
+        function updateThemeColor() {
+            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // 根据系统主题切换颜色
+            themeColorMeta.setAttribute('content', isDarkMode ? '#131313' : '#f4f4f4');
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            chatContainer.classList.toggle('dark-mode', isDarkMode);
+            messageContainer.classList.toggle('dark-mode', isDarkMode);
+
+            // 更新消息区域颜色
+            document.querySelectorAll('#chat .sent, #chat .received').forEach(msgDiv => {
+                msgDiv.classList.toggle('dark-mode', isDarkMode);
+            });
+        }
+
+        // 初次加载时更新主题颜色
+        updateThemeColor();
+
+        // 监听颜色模式变化
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
+    </script>
+</body>
+</html>
