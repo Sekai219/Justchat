@@ -6,7 +6,7 @@
     <title>Chat</title>
 
     <!-- 添加PWA相关的meta标签 -->
-    <meta name="theme-color" content="#232323">
+    <meta id="theme-color-meta" name="theme-color" content="#232323">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Chat App">
@@ -219,6 +219,24 @@
         refreshBtn.addEventListener('click', function() {
             location.reload();
         });
+
+        // 颜色模式检测和主题色设置
+        function setThemeColor() {
+            const metaThemeColor = document.getElementById('theme-color-meta');
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                // 深色模式
+                metaThemeColor.setAttribute('content', '#232323');
+            } else {
+                // 浅色模式
+                metaThemeColor.setAttribute('content', '#F4F4F4');
+            }
+        }
+
+        // 初始化时设置主题色
+        setThemeColor();
+
+        // 当系统颜色模式变化时，实时更新主题色
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setThemeColor);
 
         // 注册服务工作线程以支持 PWA
         if ('serviceWorker' in navigator) {
