@@ -1,4 +1,4 @@
-# just-web-chat
+# Just-chat-PWA
 
 ![](./mess.png)
 ### 1. **连接到你的VPS**
