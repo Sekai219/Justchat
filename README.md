@@ -84,10 +84,10 @@
    你可能希望你的服务器在VPS重启后自动启动。你可以使用 `pm2` 来管理 Node.js 应用：
 
    ```bash
-   sudo npm install -g pm2
-   pm2 start server.js
-   pm2 startup
-   pm2 save
+npm install pm2 -g
+pm2 start server.js --name "chat"
+pm2 save
+pm2 startup
    ```
 
 
