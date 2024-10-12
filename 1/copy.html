@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAC-MAN</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #131313; /* 设置背景色 */
+        }
+
+        .circle-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #7fb80e; /* 绿色 */
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            color: white;
+            font-weight: bold;
+            transition: transform 0.3s ease; /* 添加点击动画 */
+            -webkit-tap-highlight-color: transparent; /* 去除手机端点击高亮 */
+            outline: none; /* 去除点击时的边框 */
+        }
+
+        .circle-button:active {
+            transform: scale(0.9); /* 点击时缩小 */
+        }
+
+        /* 添加淡入效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .circle-button {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        /* 设置视频在左下角显示 */
+        #smallVideo {
+            position: fixed;
+            bottom: 1px;
+            left: 1px;
+            width: 1px;  /* 设置视频宽度 */
+            height: 1px; /* 设置视频高度 */
+            z-index: 1000; /* 确保视频在最上层 */
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <button class="circle-button" id="pasteBtn">粘贴</button>
+
+    <!-- 插入循环播放的视频 -->
+    <video id="smallVideo" autoplay loop muted>
+        <source src="video.mp4" type="video/mp4">
+        您的浏览器不支持HTML5视频。
+    </video>
+
+    <script>
+        async function enterPictureInPicture() {
+            const video = document.getElementById('smallVideo');
+            if (video) {
+                try {
+                    await video.requestPictureInPicture();
+                } catch (error) {
+                    console.error('无法进入画中画模式:', error);
+                }
+            }
+        }
+
+        function openAndPaste() {
+            // 每次点击都尝试进入PIP模式
+            enterPictureInPicture();
+
+            // 打开新窗口并执行粘贴操作
+            const newWindow = window.open('index.html', '_blank', 'width=50,height=150');
+            newWindow.onload = function() {
+                newWindow.document.getElementById('pasteBtn').click();
+                setTimeout(() => {
+                    newWindow.close();
+                }, 1000);
+            };
+        }
+
+        document.getElementById('pasteBtn').addEventListener('click', openAndPaste);
+    </script>
+</body>
+</html>
