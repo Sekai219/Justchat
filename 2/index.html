@@ -222,10 +222,6 @@
             }
         });
 
-        refreshBtn.addEventListener('click', function() {
-            location.reload();
-        });
-
         function setThemeColor() {
             const metaThemeColor = document.getElementById('theme-color-meta');
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
