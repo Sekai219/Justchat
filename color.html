@@ -63,18 +63,25 @@
             white-space: pre-wrap;
         }
 
-        #chat .sent {
-            align-self: flex-end;
-            text-align: right;
-        }
+#chat .sent {
+    align-self: flex-end;
+    text-align: right;
+    background: rgba(0, 0, 0, 0.2); /* 黑色半透明背景 */
+    color: white; /* 文字颜色改为白色 */
+    border-radius: 5px;
+}
 
-        #chat .received {
-            align-self: flex-start;
-        }
+#chat .received {
+    align-self: flex-start;
+    background: rgba(0, 0, 0, 0.2); /* 黑色半透明背景 */
+    color: white; /* 文字颜色改为白色 */
+    border-radius: 5px;
+}
 
         #message-container {
             display: flex;
             padding: 10px;
+            background: #f7f7f7;
             border-top: 1px solid #ccc;
         }
 
@@ -148,6 +155,15 @@
     <!-- 加载socket.io -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // 请求通知权限
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Notification permission granted.");
+            } else {
+                console.log("Notification permission denied.");
+            }
+        });
+
         const socket = io();
         const chat = document.getElementById('chat');
         const messageInput = document.getElementById('message');
@@ -166,8 +182,40 @@
             const div = document.createElement('div');
             div.textContent = msg;
             div.classList.add(sender === socket.id ? 'sent' : 'received');
+            div.addEventListener('click', function() {
+                navigator.clipboard.writeText(msg).then(() => {
+                    refreshBtn.style.display = 'none'; 
+                    togglePasteBtnColor(); // 切换颜色
+                }).catch(err => {
+                    console.error('复制失败', err);
+                });
+            });
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
+
+            // 发送通知，排除自己发送的消息
+            if (sender !== socket.id) {
+                sendNotification(msg);
+            }
+
+            refreshBtn.style.display = 'none';
+        }
+
+        function sendNotification(message) {
+            if (Notification.permission === "granted") {
+                const notification = new Notification("New Message", {
+                    body: message,
+                    icon: "/icons/1.png"
+                });
+
+                setTimeout(() => {
+                    notification.close();
+                }, 3000);
+
+                notification.onclick = function() {
+                    this.close();
+                };
+            }
         }
 
         socket.on('message', function(data) {
@@ -179,6 +227,13 @@
             if (message.trim() !== "") {
                 socket.emit('message', { msg: message, sender: socket.id });
                 messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendBtn.click();
             }
         });
 
